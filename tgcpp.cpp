@@ -1,50 +1,82 @@
 #include "tgcpp.h"
 
+#include <stdexcept>
+
 extern "C"
 {
 #include "tgc/tgc.h"
 }
 
 namespace tgc_private {
-tgc_t gc;
-}
+class gc final : public tgc {
+  public:
+    gc(void *stk) noexcept;
+    ~gc() noexcept override;
+    void run() override;
+    void pause() override;
+    void resume() override;
+    void *alloc(size_t size) override;
+    void *calloc(size_t num, size_t size) override;
+    void *realloc(void *ptr, size_t size) override;
+    void free(void *ptr) override;
+    void set_dtor(void *ptr, void (*dtor)(void *)) override;
 
-namespace tgc {
-using namespace tgc_private;
+  private:
+    tgc_t tgc;
+};
 
-void start(void *stk) {
-    tgc_start(&gc, stk);
+gc::gc(void *stk) noexcept {
+    tgc_start(&tgc, stk);
 }
-void stop() {
-    tgc_stop(&gc);
+gc::~gc() noexcept {
+    tgc_stop(&tgc);
 }
+void gc::run() {
+    tgc_run(&tgc);
+}
+void gc::pause() {
+    tgc_pause(&tgc);
+}
+void gc::resume() {
+    tgc_resume(&tgc);
+}
+void *gc::alloc(size_t size) {
+    return tgc_alloc(&tgc, size);
+}
+void *gc::calloc(size_t num, size_t size) {
+    return tgc_calloc(&tgc, num, size);
+}
+void *gc::realloc(void *ptr, size_t size) {
+    return tgc_realloc(&tgc, ptr, size);
+}
+void gc::free(void *ptr) {
+    tgc_free(&tgc, ptr);
+}
+void gc::set_dtor(void *ptr, void (*dtor)(void *)) {
+    tgc_set_dtor(&tgc, ptr, dtor);
+}
+} // namespace tgc_private
 
-void run() {
-    tgc_run(&gc);
+tgc *tgc::global = nullptr;
+void tgc::init(void *stk) {
+    if (global != nullptr) {
+        throw std::runtime_error("In tgc::init(), tgc::global != nullptr");
+    }
+    global = new tgc_private::gc(stk);
 }
-
-void pause() {
-    tgc_pause(&gc);
+void tgc::gc() {
+    if (global == nullptr) {
+        throw std::runtime_error("In tgc::gc(), tgc::global == nullptr");
+    }
+    global->run();
 }
-void resume() {
-    tgc_resume(&gc);
+void tgc::stop() {
+    if (global == nullptr) {
+        throw std::runtime_error("In tgc::stop(), tgc::global == nullptr");
+    }
+    delete global;
+    global = nullptr;
 }
-
-void *alloc(size_t size) {
-    return tgc_alloc(&gc, size);
+std::unique_ptr<tgc> tgc::create(void *stk) noexcept {
+    return std::unique_ptr<tgc_private::gc>(new tgc_private::gc(stk));
 }
-void *calloc(size_t num, size_t size) {
-    return tgc_calloc(&gc, num, size);
-}
-void *realloc(void *ptr, size_t size) {
-    return tgc_realloc(&gc, ptr, size);
-}
-void free(void *ptr) {
-    tgc_free(&gc, ptr);
-}
-
-void set_dtor(void *ptr, void (*dtor)(void *)) {
-    tgc_set_dtor(&gc, ptr, dtor);
-}
-
-} // namespace tgc
