@@ -1,10 +1,10 @@
 tgcpp
-===
+=====
 
 C++ Wrapper for [Tiny Garbage Collector](https://github.com/orangeduck/tgc)
 
-Usage
-===
+**Usage**
+
 ```cpp
 #include "tgcpp.h"
 #include <cstdio>
@@ -23,8 +23,9 @@ class B : public A {
 };
 
 int main(int argc, char *argv[]) {
-    tgc::start(&argc);
+    tgc::init(&argc);
     try {
+        A *ptr0 = tgc_new<A>();
         A *ptr1 = tgc_new<B>();
         throw "exception";
         A *ptr2 = tgc_new<A>();
@@ -35,4 +36,3 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 ```
-

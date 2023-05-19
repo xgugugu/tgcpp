@@ -2,11 +2,13 @@
 
 #include <stdexcept>
 
+// 解决C++符号修饰导致的链接错误
 extern "C"
 {
 #include "tgc/tgc.h"
 }
 
+// 通过私有类和工厂模式隐藏tgc的C接口
 namespace tgc_private {
 class gc final : public tgc {
   public:
@@ -24,7 +26,6 @@ class gc final : public tgc {
   private:
     tgc_t tgc;
 };
-
 gc::gc(void *stk) noexcept {
     tgc_start(&tgc, stk);
 }
@@ -57,6 +58,7 @@ void gc::set_dtor(void *ptr, void (*dtor)(void *)) {
 }
 } // namespace tgc_private
 
+// 全局的垃圾回收器
 tgc *tgc::global = nullptr;
 void tgc::init(void *stk) {
     if (global != nullptr) {
@@ -77,6 +79,7 @@ void tgc::stop() {
     delete global;
     global = nullptr;
 }
+// 工厂函数：用于创建并运行新的垃圾收集器
 std::unique_ptr<tgc> tgc::create(void *stk) noexcept {
     return std::unique_ptr<tgc_private::gc>(new tgc_private::gc(stk));
 }
