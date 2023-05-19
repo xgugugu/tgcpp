@@ -1,0 +1,8 @@
+*~
+*.a
+*.o
+*.so
+*.exe
+*.dSYM
+
+test*
